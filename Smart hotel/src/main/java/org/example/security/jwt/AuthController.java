@@ -1,14 +1,12 @@
 package org.example.security.jwt;
 
-
-
-
 import org.example.entity.Roles;
 import org.example.entity.User;
 import org.example.repository.UserRepository;
 import org.example.security.jwt.JwtUtils;
 import org.example.security.jwt.LoginRequest;
 import org.example.security.jwt.LoginResponse;
+import org.example.security.jwt.RegisterRequest; // Add this import
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,83 +18,82 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 import java.util.stream.Collectors;
 
-    @RestController
-    @RequestMapping("/api/auth")
-    public class AuthController {
 
-        private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+import java.util.*;
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
 
-        @Autowired
-        private AuthenticationManager authenticationManager;
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
-        @Autowired
-        private UserRepository userRepository;
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
-        @Autowired
-        private PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
 
-        @Autowired
-        private JwtUtils jwtUtils;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtils jwtUtils;
 
-        @PostMapping("/login")
-        public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
-            try {
-                Authentication authentication = authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                loginRequest.getEmail(),
-                                loginRequest.getPassword()
-                        )
-                );
+    @PostMapping("/login")
+    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()
+                    )
+            );
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                String jwt = jwtUtils.generateTokenFromUsername((org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal());
+            String jwt = jwtUtils.generateTokenFromUsername((org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal());
 
-                org.springframework.security.core.userdetails.UserDetails userDetails =
-                        (org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal();
+            org.springframework.security.core.userdetails.UserDetails userDetails =
+                    (org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal();
 
-                List<String> roles = userDetails.getAuthorities().stream()
-                        .map(auth -> auth.getAuthority())
-                        .collect(Collectors.toList());
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(auth -> auth.getAuthority())
+                    .collect(Collectors.toList());
 
-                return ResponseEntity.ok(new LoginResponse(userDetails.getUsername(), roles, jwt));
+            return ResponseEntity.ok(new LoginResponse(userDetails.getUsername(), roles, jwt));
 
-            } catch (BadCredentialsException e) {
-                logger.error("Invalid login attempt for user {}", loginRequest.getEmail());
-                return ResponseEntity.status(401).body("Invalid username or password");
-            }
+        } catch (BadCredentialsException e) {
+            logger.error("Invalid login attempt for user {}", loginRequest.getEmail());
+            return ResponseEntity.status(401).body("Invalid username or password");
         }
-
-
-        @PostMapping("/register")
-        public ResponseEntity<?> registerUser(@RequestBody User userRequest) {
-            if (userRepository.existsByEmail(userRequest.getEmail())) {
-                return ResponseEntity
-                        .badRequest()
-                        .body("Error: Email is already in use!");
-            }
-
-            // encode password
-            userRequest.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-
-            // default role if not set
-            if (userRequest.getRole() == null) {
-                userRequest.setRole(Roles.ROLE_USER);
-            }
-
-            userRepository.save(userRequest);
-
-            return ResponseEntity.ok("User registered successfully!");
-        }
-
-
     }
 
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest registerRequest) {
+        logger.info("Register endpoint called with email: {}", registerRequest.getEmail());
 
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Error: Email is already in use!");
+        }
 
+        // Create new user
+        User user = new User();
+        user.setEmail(registerRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setName(registerRequest.getName());
 
+        // Set role
+        if (registerRequest.getRole() == null) {
+            user.setRole(Roles.ROLE_USER);
+        } else {
+            user.setRole(registerRequest.getRole());
+        }
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok("User registered successfully!");
+    }
+}
