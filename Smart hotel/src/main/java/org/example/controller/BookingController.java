@@ -1,7 +1,7 @@
 package org.example.controller;
 
-import org.example.dto.BookingRequest;
-import org.example.dto.BookingResponse;
+import org.example.dto.Request.BookingRequest;
+import org.example.dto.Response.BookingResponse;
 import org.example.service.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

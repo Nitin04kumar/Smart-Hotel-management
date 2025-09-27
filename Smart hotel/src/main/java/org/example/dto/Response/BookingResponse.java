@@ -1,4 +1,4 @@
-package org.example.dto;
+package org.example.dto.Response;
 
 import org.example.entity.Booking;
 import lombok.AllArgsConstructor;

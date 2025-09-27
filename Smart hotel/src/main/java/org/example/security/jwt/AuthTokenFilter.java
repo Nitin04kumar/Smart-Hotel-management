@@ -1,6 +1,5 @@
 package org.example.security.jwt;
 
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,9 +36,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         logger.debug("Processing request: {} {}", method, path);
 
-        // Skip JWT authentication for login and register endpoints
-        if (path.equals("/api/auth/login") || path.equals("/api/auth/register")) {
-            logger.debug("Skipping JWT filter for: {}", path);
+        // Skip JWT authentication for login, register, and OPTIONS requests
+        if (path.startsWith("/api/auth/") || path.startsWith("/auth/") || "OPTIONS".equalsIgnoreCase(method)) {
+            logger.debug("Skipping JWT filter for: {} {}", method, path);
             filterChain.doFilter(request, response);
             return;
         }
@@ -64,10 +63,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
- private String parseJwt(HttpServletRequest request) {
+
+    private String parseJwt(HttpServletRequest request) {
         String jwt = jwtUtils.getJwtFromHeader(request);
         logger.debug("AuthTokenFilter.java: {}", jwt);
         return jwt;
     }
 }
-

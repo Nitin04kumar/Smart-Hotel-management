@@ -16,10 +16,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.stream.Collectors;
 
-
 import java.util.*;
+
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/auth") // Make sure this matches
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -80,7 +80,17 @@ public class AuthController {
         user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setName(registerRequest.getName());
-        user.setRole(registerRequest.getRole());
+
+        // Set role - handle string to enum conversion
+        if (registerRequest.getRole() == null) {
+            user.setRole(Roles.ROLE_USER);
+        } else {
+            try {
+                user.setRole(Roles.valueOf(registerRequest.getRole().name()));
+            } catch (IllegalArgumentException e) {
+                user.setRole(Roles.ROLE_USER);
+            }
+        }
 
         userRepository.save(user);
 

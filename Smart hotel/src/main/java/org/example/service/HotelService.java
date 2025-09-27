@@ -1,7 +1,7 @@
 package org.example.service;
 
-import org.example.dto.HotelDetailResponse;
-import org.example.dto.HotelSummaryResponse;
+import org.example.dto.Response.HotelDetailResponse;
+import org.example.dto.Response.HotelSummaryResponse;
 import org.example.entity.Hotel;
 import org.example.enums.RoomType;
 import org.example.exceptions.ResourceNotFoundException;

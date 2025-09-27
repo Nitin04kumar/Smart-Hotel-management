@@ -1,7 +1,7 @@
 package org.example.service;
 
-import org.example.dto.BookingRequest;
-import org.example.dto.BookingResponse;
+import org.example.dto.Request.BookingRequest;
+import org.example.dto.Response.BookingResponse;
 import org.example.entity.Booking;
 import org.example.entity.Hotel;
 import org.example.enums.RoomType;

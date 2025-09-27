@@ -1,4 +1,4 @@
-package org.example.dto;
+package org.example.dto.Response;
 
 import org.example.entity.Hotel;
 import org.example.entity.Room;
