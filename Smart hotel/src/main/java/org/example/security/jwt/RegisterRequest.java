@@ -1,23 +1,29 @@
 package org.example.security.jwt;
 
-import org.example.entity.Roles;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.example.enums.Roles;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class RegisterRequest {
-    private String name;
+    @Email
+    @NotBlank
     private String email;
+
+    @NotBlank
     private String password;
+
+    @NotBlank
+    private String name;
+
+    @NotBlank
+    @Enumerated(EnumType.STRING)
     private Roles role;
-
-    // Getters and setters
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-
-    public Roles getRole() { return role; }
-    public void setRole(Roles role) { this.role = role; }
 }

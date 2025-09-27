@@ -1,12 +1,8 @@
 package org.example.security.jwt;
 
-import org.example.entity.Roles;
+import org.example.enums.Roles;
 import org.example.entity.User;
 import org.example.repository.UserRepository;
-import org.example.security.jwt.JwtUtils;
-import org.example.security.jwt.LoginRequest;
-import org.example.security.jwt.LoginResponse;
-import org.example.security.jwt.RegisterRequest; // Add this import
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,13 +80,7 @@ public class AuthController {
         user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setName(registerRequest.getName());
-
-        // Set role
-        if (registerRequest.getRole() == null) {
-            user.setRole(Roles.ROLE_USER);
-        } else {
-            user.setRole(registerRequest.getRole());
-        }
+        user.setRole(registerRequest.getRole());
 
         userRepository.save(user);
 

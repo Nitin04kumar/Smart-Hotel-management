@@ -19,7 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity // enables @PreAuthorize and similar
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired
@@ -31,17 +31,11 @@ public class SecurityConfig {
     @Autowired
     private AuthTokenFilter authTokenFilter;
 
-    /**
-     * Password encoder for user passwords
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Authentication provider using our UserDetailsServiceImpl
-     */
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -50,17 +44,11 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    /**
-     * AuthenticationManager bean
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
-    /**
-     * Main security filter chain
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -68,13 +56,12 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/register").permitAll()
-                        .requestMatchers("/error").permitAll() // Add this line
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/hotels/**").permitAll() // Public hotel endpoints
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 );
 
-        // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
