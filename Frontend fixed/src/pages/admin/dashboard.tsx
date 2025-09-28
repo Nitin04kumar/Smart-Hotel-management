@@ -1,30 +1,59 @@
-import { useEffect, useMemo, useState } from 'react';
-import './admin.css';
-import { getHotelsByStatus } from '@/services/admin';
-import { Hotel, Users, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { useEffect, useState } from "react";
+import "./admin.css";
+// 1. IMPORT the services we need
+import { getHotelsByStatus, getAllUsers } from "@/services/admin";
+import { Hotel, Users, CheckCircle, Clock, XCircle } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  useEffect(() => { document.title = 'Dashboard | Admin Panel'; }, []);
-  const [hotels, setHotels] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    Promise.all([
-      getHotelsByStatus('approved'),
-      getHotelsByStatus('pending'),
-      getHotelsByStatus('rejected'),
-    ]).then(([approved, pending, rejected]) => {
-      setHotels([...approved, ...pending, ...rejected]);
-    }).catch(() => setHotels([]))
-      .finally(() => setLoading(false));
+    document.title = "Dashboard | Admin Panel";
   }, []);
 
-  const stats = useMemo(() => {
-    const approved = hotels.filter(h => h.status === 'approved').length;
-    const pending = hotels.filter(h => h.status === 'pending').length;
-    const rejected = hotels.filter(h => h.status === 'rejected').length;
-    return { total: hotels.length, approved, pending, rejected };
-  }, [hotels]);
+  const [stats, setStats] = useState({
+    totalHotels: 0,
+    approved: 0,
+    pending: 0,
+    rejected: 0,
+    totalUsers: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+
+        // 2. Use Promise.all to fetch all data concurrently
+        const [pendingHotels, approvedHotels, rejectedHotels, allUsers] =
+          await Promise.all([
+            getHotelsByStatus("pending"),
+            getHotelsByStatus("approved"),
+            getHotelsByStatus("rejected"),
+            getAllUsers(),
+          ]);
+
+        const totalHotels =
+          pendingHotels.length + approvedHotels.length + rejectedHotels.length;
+
+        // 3. Set the state with the complete, accurate data
+        setStats({
+          totalHotels: totalHotels,
+          approved: approvedHotels.length,
+          pending: pendingHotels.length,
+          rejected: rejectedHotels.length,
+          totalUsers: allUsers.length,
+        });
+      } catch (err) {
+        console.error("Error loading dashboard:", err);
+        setError("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   if (loading) {
     return (
@@ -41,9 +70,12 @@ export default function AdminDashboardPage() {
     <div className="admin-page admin-dashboard">
       <header>
         <h1>Admin Dashboard</h1>
-        <p className="text-muted-foreground">Manage hotels, users, and system-wide operations.</p>
+        <p className="text-muted-foreground">
+          Manage hotels, users, and system-wide operations.
+        </p>
       </header>
 
+      {error && <div className="alert error">{error}</div>}
 
       {/* Metrics Grid */}
       <div className="metrics-grid">
@@ -54,7 +86,7 @@ export default function AdminDashboardPage() {
               <Hotel size={16} />
             </div>
           </div>
-          <div className="metric-value">{stats.total}</div>
+          <div className="metric-value">{stats.totalHotels}</div>
           <div className="metric-description">Total properties in system</div>
         </div>
 
@@ -98,11 +130,10 @@ export default function AdminDashboardPage() {
               <Users size={16} />
             </div>
           </div>
-          <div className="metric-value">-</div>
+          <div className="metric-value">{stats.totalUsers}</div>
           <div className="metric-description">Registered users</div>
         </div>
       </div>
-
     </div>
   );
 }

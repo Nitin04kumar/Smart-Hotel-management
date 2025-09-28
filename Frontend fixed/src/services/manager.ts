@@ -14,7 +14,6 @@ export type ManagerHotel = {
 };
 
 export type NewHotelPayload = {
-  managerEmail: string;
   name: string;
   location: string;
   description?: string;

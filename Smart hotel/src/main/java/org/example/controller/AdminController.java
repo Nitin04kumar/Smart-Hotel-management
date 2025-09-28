@@ -17,64 +17,44 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = {"http://localhost:5173"})
 public class AdminController {
-
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
     @Autowired
     private AdminService adminService;
 
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getDashboardStats() {
+        return ResponseEntity.ok(adminService.getDashboardStats());
+    }
+
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<User>> getAllUsers() {
-        try {
-            return ResponseEntity.ok(adminService.getAllUsers());
-        } catch (Exception e) {
-            logger.error("Error getting all users: ", e);
-            return ResponseEntity.status(500).build();
-        }
+        return ResponseEntity.ok(adminService.getAllUsers());
     }
 
-    @GetMapping("/hotels/pending")
+    @GetMapping("/hotels")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<Hotel>> getPendingHotels() {
-        try {
-            return ResponseEntity.ok(adminService.getPendingHotels());
-        } catch (Exception e) {
-            logger.error("Error getting pending hotels: ", e);
-            return ResponseEntity.status(500).build();
-        }
+    public ResponseEntity<List<Hotel>> getAllHotels() {
+        return ResponseEntity.ok(adminService.getAllHotels());
     }
 
-    @PutMapping("/hotels/{id}/approve")
+    @GetMapping("/hotels/{status}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> approveHotel(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(adminService.approveHotel(id));
-        } catch (Exception e) {
-            logger.error("Error approving hotel: ", e);
-            return ResponseEntity.status(500).build();
-        }
+    public ResponseEntity<List<Hotel>> getHotelsByStatus(@PathVariable String status) {
+        return ResponseEntity.ok(adminService.getHotelsByStatus(status.toUpperCase()));
     }
 
-    @PutMapping("/hotels/{id}/reject")
+    @PutMapping("/hotels/{hotelId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> rejectHotel(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(adminService.rejectHotel(id));
-        } catch (Exception e) {
-            logger.error("Error rejecting hotel: ", e);
-            return ResponseEntity.status(500).build();
-        }
+    public ResponseEntity<Hotel> approveHotel(@PathVariable Long hotelId) {
+        return ResponseEntity.ok(adminService.approveHotel(hotelId));
     }
 
-    @GetMapping("/dashboard/stats")
+    @PutMapping("/hotels/{hotelId}/reject")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        try {
-            return ResponseEntity.ok(adminService.getDashboardStats());
-        } catch (Exception e) {
-            logger.error("Error getting dashboard stats: ", e);
-            return ResponseEntity.status(500).build();
-        }
+    public ResponseEntity<Hotel> rejectHotel(@PathVariable Long hotelId) {
+        return ResponseEntity.ok(adminService.rejectHotel(hotelId));
     }
 }

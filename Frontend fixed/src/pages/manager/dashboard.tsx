@@ -1,18 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
-import './manager.css';
-import { useAuth } from '@/context/AuthContext';
-import { getManagerBookings, getMyHotels } from '@/services/manager';
-import type { ManagerHotel } from '@/services/manager';
-import { Hotel, Calendar, DollarSign, Star, MessageSquare, MapPin, Users, ChevronDown } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import "./manager.css";
+import { useAuth } from "@/context/AuthContext";
+import { getManagerBookings, getMyHotels } from "@/services/manager";
+import type { ManagerHotel } from "@/services/manager";
+import {
+  Hotel,
+  Calendar,
+  DollarSign,
+  Star,
+  MessageSquare,
+  MapPin,
+  Users,
+  ChevronDown,
+} from "lucide-react";
 
 export default function ManagerDashboardPage() {
   const { auth } = useAuth();
   const [hotels, setHotels] = useState<ManagerHotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "approved" | "pending" | "rejected"
+  >("all");
 
-  useEffect(() => { document.title = 'Dashboard | Manager Panel'; }, []);
+  useEffect(() => {
+    document.title = "Dashboard | Manager Panel";
+  }, []);
 
   useEffect(() => {
     if (!auth) return;
@@ -20,33 +33,68 @@ export default function ManagerDashboardPage() {
     Promise.all([
       getMyHotels(auth.user.email),
       getManagerBookings(auth.user.email),
-    ]).then(([hs, bs]) => {
-      setHotels(hs);
-      setBookings(bs);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([hs, bs]) => {
+        // Ensure hotels is always an array
+        setHotels(Array.isArray(hs) ? hs : []);
+        setBookings(Array.isArray(bs) ? bs : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching dashboard data:", error);
+        setHotels([]);
+        setBookings([]);
+      })
+      .finally(() => setLoading(false));
   }, [auth]);
 
-  const approvedHotels = hotels.filter(h => (h.status ?? 'approved') === 'approved');
-  const pendingHotels = hotels.filter(h => h.status === 'pending');
-  const rejectedHotels = hotels.filter(h => h.status === 'rejected');
-  
-  const filteredHotels = selectedStatus === 'all' ? hotels : 
-                        selectedStatus === 'approved' ? approvedHotels :
-                        selectedStatus === 'pending' ? pendingHotels : rejectedHotels;
-  
+  // Safe array operations with fallbacks
+  const approvedHotels = Array.isArray(hotels)
+    ? hotels.filter((h) => (h.status ?? "approved") === "approved")
+    : [];
+  const pendingHotels = Array.isArray(hotels)
+    ? hotels.filter((h) => h.status === "pending")
+    : [];
+  const rejectedHotels = Array.isArray(hotels)
+    ? hotels.filter((h) => h.status === "rejected")
+    : [];
+
+  const filteredHotels =
+    selectedStatus === "all"
+      ? hotels
+      : selectedStatus === "approved"
+      ? approvedHotels
+      : selectedStatus === "pending"
+      ? pendingHotels
+      : rejectedHotels;
+
   const totalHotels = approvedHotels.length;
-  const successfulBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed' || b.status === 'paid');
+  const successfulBookings = Array.isArray(bookings)
+    ? bookings.filter(
+        (b) =>
+          b.status === "confirmed" ||
+          b.status === "completed" ||
+          b.status === "paid"
+      )
+    : [];
   const totalBookings = successfulBookings.length;
-  const totalRevenue = successfulBookings.reduce((sum, b) => sum + (b.total || 0), 0);
-  
-  console.log('📊 Manager Dashboard - Bookings data:', {
-    totalBookings: bookings.length,
+  const totalRevenue = successfulBookings.reduce(
+    (sum, b) => sum + (b.total || 0),
+    0
+  );
+
+  console.log("📊 Manager Dashboard - Bookings data:", {
+    totalBookings: Array.isArray(bookings) ? bookings.length : 0,
     successfulBookings: successfulBookings.length,
     totalRevenue,
-    bookingStatuses: bookings.map(b => ({ id: b.id, status: b.status, total: b.total }))
+    bookingStatuses: Array.isArray(bookings)
+      ? bookings.map((b) => ({ id: b.id, status: b.status, total: b.total }))
+      : [],
   });
-  
-  const avgRating = hotels.length > 0 ? hotels.reduce((sum, h) => sum + (h.rating || 0), 0) / hotels.length : 0;
+
+  const avgRating =
+    Array.isArray(hotels) && hotels.length > 0
+      ? hotels.reduce((sum, h) => sum + (h.rating || 0), 0) / hotels.length
+      : 0;
 
   if (loading) {
     return (
@@ -63,7 +111,9 @@ export default function ManagerDashboardPage() {
     <div className="manager-page manager-dashboard">
       <header>
         <h1>Manager Dashboard</h1>
-        <p className="text-muted-foreground">Manage your hotels, bookings, and guest reviews.</p>
+        <p className="text-muted-foreground">
+          Manage your hotels, bookings, and guest reviews.
+        </p>
       </header>
 
       {/* Stats Overview */}
@@ -119,11 +169,13 @@ export default function ManagerDashboardPage() {
           <Calendar size={20} />
           Recent Bookings
         </h2>
-        
-        {bookings.length === 0 ? (
+
+        {!Array.isArray(bookings) || bookings.length === 0 ? (
           <div className="empty-state">
             <h3>No bookings yet</h3>
-            <p>Bookings will appear here once guests start reserving your hotels.</p>
+            <p>
+              Bookings will appear here once guests start reserving your hotels.
+            </p>
           </div>
         ) : (
           <div className="data-table-container">
@@ -166,23 +218,33 @@ export default function ManagerDashboardPage() {
             <Hotel size={20} />
             My Hotels
           </h2>
-          
+
           <div className="status-filter-dropdown">
-            <select 
-              value={selectedStatus} 
-              onChange={(e) => setSelectedStatus(e.target.value as 'all' | 'approved' | 'pending' | 'rejected')}
+            <select
+              value={selectedStatus}
+              onChange={(e) =>
+                setSelectedStatus(
+                  e.target.value as "all" | "approved" | "pending" | "rejected"
+                )
+              }
               className="status-filter-select"
             >
-              <option value="all">All Hotels ({hotels.length})</option>
-              <option value="approved">Approved ({approvedHotels.length})</option>
+              <option value="all">
+                All Hotels ({Array.isArray(hotels) ? hotels.length : 0})
+              </option>
+              <option value="approved">
+                Approved ({approvedHotels.length})
+              </option>
               <option value="pending">Pending ({pendingHotels.length})</option>
-              <option value="rejected">Rejected ({rejectedHotels.length})</option>
+              <option value="rejected">
+                Rejected ({rejectedHotels.length})
+              </option>
             </select>
             <ChevronDown size={16} className="dropdown-icon" />
           </div>
         </div>
-        
-        {hotels.length === 0 ? (
+
+        {!Array.isArray(hotels) || hotels.length === 0 ? (
           <div className="empty-state">
             <h3>No hotels yet</h3>
             <p>Add your first hotel to start managing bookings and reviews.</p>
@@ -198,9 +260,9 @@ export default function ManagerDashboardPage() {
               <div key={hotel.id} className="hotel-approval-card">
                 <div className="hotel-image-placeholder">
                   <Hotel size={32} />
-                  <span style={{ marginLeft: '0.5rem' }}>Hotel Image</span>
+                  <span style={{ marginLeft: "0.5rem" }}>Hotel Image</span>
                 </div>
-                
+
                 <div className="hotel-card-content">
                   <div className="hotel-header">
                     <div className="hotel-info">
@@ -211,18 +273,28 @@ export default function ManagerDashboardPage() {
                       </div>
                       <div className="rating">
                         <Star size={14} fill="currentColor" />
-                        {hotel.rating?.toFixed(1) || 'N/A'}
+                        {hotel.rating?.toFixed(1) || "N/A"}
                       </div>
                     </div>
-                    <div className={`hotel-status ${hotel.status || 'approved'}`}>
-                      {hotel.status || 'approved'}
+                    <div
+                      className={`hotel-status ${hotel.status || "approved"}`}
+                    >
+                      {hotel.status || "approved"}
                     </div>
                   </div>
 
                   <div className="hotel-details">
                     <div className="hotel-detail-item">
                       <span className="hotel-detail-label">Total Rooms</span>
-                      <span className="hotel-detail-value">{Object.values(hotel.rooms).reduce((sum, room) => sum + room.available, 0)}</span>
+                      <span className="hotel-detail-value">
+                        {hotel.rooms && typeof hotel.rooms === "object"
+                          ? Object.values(hotel.rooms).reduce(
+                              (sum: number, room: any) =>
+                                sum + (room.available || 0),
+                              0
+                            )
+                          : 0}
+                      </span>
                     </div>
                     <div className="hotel-detail-item">
                       <span className="hotel-detail-label">Total Reviews</span>
@@ -233,12 +305,18 @@ export default function ManagerDashboardPage() {
                   <div className="hotel-amenities">
                     <div className="hotel-amenities-title">Amenities</div>
                     <div className="amenities-tags">
-                      {hotel.amenities.slice(0, 4).map((amenity, index) => (
-                        <span key={index} className="amenity-tag">{amenity}</span>
-                      ))}
-                      {hotel.amenities.length > 4 && (
-                        <span className="amenity-tag">+{hotel.amenities.length - 4} more</span>
-                      )}
+                      {Array.isArray(hotel.amenities) &&
+                        hotel.amenities.slice(0, 4).map((amenity, index) => (
+                          <span key={index} className="amenity-tag">
+                            {amenity}
+                          </span>
+                        ))}
+                      {Array.isArray(hotel.amenities) &&
+                        hotel.amenities.length > 4 && (
+                          <span className="amenity-tag">
+                            +{hotel.amenities.length - 4} more
+                          </span>
+                        )}
                     </div>
                   </div>
                 </div>

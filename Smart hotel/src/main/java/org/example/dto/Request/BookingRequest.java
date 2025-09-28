@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BookingRequest {
     @NotNull
-    private Long hotelId;
+    private String hotelId;
 
     @NotNull
     private String roomType;

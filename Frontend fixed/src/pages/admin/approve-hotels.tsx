@@ -1,47 +1,61 @@
-import { useEffect, useState } from 'react';
-import './admin.css';
-import { getHotelsByStatus, approveHotel, rejectHotel } from '@/services/admin';
-import type { HotelRequest } from '@/models/types';
-import { Hotel, CheckCircle, X, Eye } from 'lucide-react';
+import { useEffect, useState } from "react";
+import "./admin.css";
+import { getHotelsByStatus, approveHotel, rejectHotel } from "@/services/admin";
+import type { AdminHotel } from "@/models/types";
+import { Hotel, CheckCircle, X, Eye } from "lucide-react";
 
 export default function AdminApproveHotelsPage() {
-  useEffect(() => { document.title = 'Approve Hotels | Admin Panel'; }, []);
-  
-  const [hotels, setHotels] = useState<any[]>([]);
-  const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  useEffect(() => {
+    document.title = "Approve Hotels | Admin Panel";
+  }, []);
+
+  const [hotels, setHotels] = useState<AdminHotel[]>([]);
+  const [filter, setFilter] = useState<"pending" | "approved" | "rejected">(
+    "pending"
+  );
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
     getHotelsByStatus(filter)
-      .then(setHotels)
-      .catch(() => setError('Failed to load hotels'))
+      .then((data) => {
+        setHotels(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Error loading hotels:", err);
+        setError("Failed to load hotels");
+        setHotels([]);
+      })
       .finally(() => setLoading(false));
   }, [filter]);
 
-  const handleApprove = async (hotelId: string) => {
+  const handleApprove = async (hotelId: number) => {
     setActionLoading(hotelId);
-    setError('');
+    setError("");
     try {
       await approveHotel(hotelId);
-      setHotels(hotels.map(h => h.id === hotelId ? { ...h, status: 'approved' as const } : h));
+      // CORRECTED: Filter the hotel out of the local state
+      setHotels(hotels.filter((h) => h.id !== hotelId));
     } catch (err) {
-      setError('Failed to approve hotel');
+      setError("Failed to approve hotel");
+      console.error("Approve error:", err);
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleReject = async (hotelId: string) => {
+  const handleReject = async (hotelId: number) => {
     setActionLoading(hotelId);
-    setError('');
+    setError("");
     try {
       await rejectHotel(hotelId);
-      setHotels(hotels.map(h => h.id === hotelId ? { ...h, status: 'rejected' as const } : h));
+      // CORRECTED: Filter the hotel out of the local state
+      setHotels(hotels.filter((h) => h.id !== hotelId));
     } catch (err) {
-      setError('Failed to reject hotel');
+      setError("Failed to reject hotel");
+      console.error("Reject error:", err);
     } finally {
       setActionLoading(null);
     }
@@ -62,7 +76,9 @@ export default function AdminApproveHotelsPage() {
     <div className="admin-page">
       <header>
         <h1>Approve Hotels</h1>
-        <p className="text-muted-foreground">Review and manage hotel approval requests from managers.</p>
+        <p className="text-muted-foreground">
+          Review and manage hotel approval requests from managers.
+        </p>
       </header>
 
       {/* Filter Controls */}
@@ -70,9 +86,9 @@ export default function AdminApproveHotelsPage() {
         <div className="filter-row">
           <div className="filter-group">
             <label className="filter-label">Filter by Status</label>
-            <select 
+            <select
               className="filter-select"
-              value={filter} 
+              value={filter}
               onChange={(e) => setFilter(e.target.value as typeof filter)}
             >
               <option value="pending">Pending Approval</option>
@@ -82,19 +98,17 @@ export default function AdminApproveHotelsPage() {
           </div>
           <div className="filter-group">
             <span className="filter-label">Total Results</span>
-            <span className="hotel-detail-value">{hotels.length} hotels</span>
+            <span className="filter-count">
+              {Array.isArray(hotels) ? hotels.length : 0} hotels
+            </span>
           </div>
         </div>
       </div>
 
-      {error && (
-        <div className="alert error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
 
       {/* Hotels Grid */}
-      {hotels.length === 0 ? (
+      {!Array.isArray(hotels) || hotels.length === 0 ? (
         <div className="empty-state">
           <h3>No hotels found</h3>
           <p>No hotels match the current filter criteria.</p>
@@ -107,7 +121,7 @@ export default function AdminApproveHotelsPage() {
                 <div className="hotel-info">
                   <h3>{hotel.name}</h3>
                   <p>{hotel.location}</p>
-                  <p>Manager: {hotel.managerEmail}</p>
+                  <p>Manager: {hotel.managerEmail || "Unknown"}</p>
                 </div>
                 <div className={`hotel-status ${hotel.status}`}>
                   {hotel.status}
@@ -117,40 +131,55 @@ export default function AdminApproveHotelsPage() {
               <div className="hotel-details">
                 <div className="hotel-detail-item">
                   <span className="hotel-detail-label">Manager</span>
-                  <span className="hotel-detail-value">{hotel.managerEmail || 'Unknown'}</span>
+                  <span className="hotel-detail-value">
+                    {hotel.managerEmail || "Unknown"}
+                  </span>
                 </div>
                 <div className="hotel-detail-item">
                   <span className="hotel-detail-label">Amenities</span>
-                  <span className="hotel-detail-value">{hotel.amenities?.slice(0, 3).join(', ') || 'None'}</span>
+                  <span className="hotel-detail-value">
+                    {Array.isArray(hotel.amenities)
+                      ? hotel.amenities.slice(0, 3).join(", ")
+                      : "None"}
+                  </span>
                 </div>
                 <div className="hotel-detail-item">
                   <span className="hotel-detail-label">Room Types</span>
-                  <span className="hotel-detail-value">{Object.keys(hotel.rooms || {}).length} types</span>
+                  <span className="hotel-detail-value">
+                    {hotel.rooms && typeof hotel.rooms === "object"
+                      ? Object.keys(hotel.rooms).length
+                      : 0}{" "}
+                    types
+                  </span>
                 </div>
                 <div className="hotel-detail-item">
                   <span className="hotel-detail-label">Submitted</span>
-                  <span className="hotel-detail-value">{new Date(hotel.createdAt || Date.now()).toLocaleDateString()}</span>
+                  <span className="hotel-detail-value">
+                    {new Date(
+                      hotel.createdAt || Date.now()
+                    ).toLocaleDateString()}
+                  </span>
                 </div>
               </div>
 
               <div className="hotel-actions">
-                {hotel.status === 'pending' && (
+                {filter === "pending" && (
                   <>
-                    <button 
+                    <button
                       className="approve-button primary-button"
                       onClick={() => handleApprove(hotel.id)}
                       disabled={actionLoading === hotel.id}
                     >
                       <CheckCircle size={14} />
-                      {actionLoading === hotel.id ? 'Approving...' : 'Approve'}
+                      {actionLoading === hotel.id ? "Approving..." : "Approve"}
                     </button>
-                    <button 
+                    <button
                       className="reject-button secondary-button"
                       onClick={() => handleReject(hotel.id)}
                       disabled={actionLoading === hotel.id}
                     >
                       <X size={14} />
-                      {actionLoading === hotel.id ? 'Rejecting...' : 'Reject'}
+                      {actionLoading === hotel.id ? "Rejecting..." : "Reject"}
                     </button>
                   </>
                 )}

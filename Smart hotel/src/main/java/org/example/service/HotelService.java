@@ -24,6 +24,7 @@ public class HotelService {
         List<Hotel> hotels = hotelRepository.searchHotels(location, parsedRoomType);
 
         return hotels.stream()
+                .filter(hotel -> hotel.getStatus() == org.example.enums.HotelStatus.APPROVED) // Only return approved hotels
                 .map(hotel -> new HotelSummaryResponse(hotel, parsedRoomType))
                 .collect(Collectors.toList());
     }

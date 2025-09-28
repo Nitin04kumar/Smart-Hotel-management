@@ -25,7 +25,8 @@ public class BookingService {
     private HotelRepository hotelRepository;
 
     public BookingResponse createBooking(BookingRequest request, String userEmail) {
-        Hotel hotel = hotelRepository.findById(request.getHotelId())
+        Long hotelId = Long.parseLong(request.getHotelId());
+        Hotel hotel = hotelRepository.findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with id: " + request.getHotelId()));
 
         RoomType roomType = RoomType.valueOf(request.getRoomType().toUpperCase());

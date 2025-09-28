@@ -86,7 +86,7 @@ public class AuthController {
             user.setRole(Roles.ROLE_USER);
         } else {
             try {
-                user.setRole(Roles.valueOf(registerRequest.getRole().name()));
+                user.setRole(Roles.valueOf(registerRequest.getRole()));
             } catch (IllegalArgumentException e) {
                 user.setRole(Roles.ROLE_USER);
             }

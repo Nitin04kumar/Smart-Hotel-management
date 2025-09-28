@@ -1,18 +1,37 @@
-import { useEffect, useState } from 'react';
-import './admin.css';
-import { getUsersStats, getAllUsers } from '@/services/admin';
-import type { User } from '@/models/types';
-import { Users, Search, Filter } from 'lucide-react';
+import { useEffect, useState } from "react";
+import "./admin.css";
+import { getAllUsers } from "@/services/admin";
+import type { User } from "@/models/types";
+import { Users, Search, Filter } from "lucide-react";
+
+// Helper function to format role strings for display and CSS classes
+const formatRole = (role: string) => {
+  switch (role) {
+    case "ROLE_ADMIN":
+      return { className: "admin", displayName: "Admin" };
+    case "ROLE_MANAGER":
+      return { className: "manager", displayName: "Manager" };
+    case "ROLE_USER":
+      return { className: "user", displayName: "User" };
+    default:
+      return { className: "", displayName: role };
+  }
+};
 
 export default function AdminUsersDetailsPage() {
-  useEffect(() => { document.title = 'Users Details | Admin Panel'; }, []);
-  
+  useEffect(() => {
+    document.title = "Users Details | Admin Panel";
+  }, []);
+
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'manager' | 'admin'>('all');
-  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  // Updated state type to match backend role values
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "ROLE_USER" | "ROLE_MANAGER" | "ROLE_ADMIN"
+  >("all");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -21,29 +40,27 @@ export default function AdminUsersDetailsPage() {
         setUsers(userData);
         setFilteredUsers(userData);
       })
-      .catch(() => setError('Failed to load users'))
+      .catch(() => setError("Failed to load users"))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     let filtered = users;
-    
+
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter((user) =>
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
-    // Filter by role
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter(user => user.role === roleFilter);
+
+    // Filter by role (this logic remains the same)
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((user) => user.role === roleFilter);
     }
-    
+
     setFilteredUsers(filtered);
   }, [users, searchTerm, roleFilter]);
-
-  
 
   const getRoleStats = () => {
     const stats = users.reduce((acc, user) => {
@@ -70,25 +87,27 @@ export default function AdminUsersDetailsPage() {
     <div className="admin-page">
       <header>
         <h1>Users Details</h1>
-        <p className="text-muted-foreground">Manage system users and their roles across the platform.</p>
+        <p className="text-muted-foreground">
+          Manage system users and their roles across the platform.
+        </p>
       </header>
 
-      {/* User Stats */}
+      {/* User Stats - Updated to use backend role keys */}
       <div className="quick-stats">
         <div className="quick-stat">
           <div className="quick-stat-value">{users.length}</div>
           <div className="quick-stat-label">Total Users</div>
         </div>
         <div className="quick-stat">
-          <div className="quick-stat-value">{roleStats.user || 0}</div>
+          <div className="quick-stat-value">{roleStats.ROLE_USER || 0}</div>
           <div className="quick-stat-label">Customers</div>
         </div>
         <div className="quick-stat">
-          <div className="quick-stat-value">{roleStats.manager || 0}</div>
+          <div className="quick-stat-value">{roleStats.ROLE_MANAGER || 0}</div>
           <div className="quick-stat-label">Managers</div>
         </div>
         <div className="quick-stat">
-          <div className="quick-stat-value">{roleStats.admin || 0}</div>
+          <div className="quick-stat-value">{roleStats.ROLE_ADMIN || 0}</div>
           <div className="quick-stat-label">Admins</div>
         </div>
       </div>
@@ -108,29 +127,30 @@ export default function AdminUsersDetailsPage() {
           </div>
           <div className="filter-group">
             <label className="filter-label">Filter by Role</label>
-            <select 
+            {/* Updated select options to use backend role values */}
+            <select
               className="filter-select"
-              value={roleFilter} 
-              onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}
+              value={roleFilter}
+              onChange={(e) =>
+                setRoleFilter(e.target.value as typeof roleFilter)
+              }
             >
               <option value="all">All Roles</option>
-              <option value="user">Users</option>
-              <option value="manager">Managers</option>
-              <option value="admin">Admins</option>
+              <option value="ROLE_USER">Users</option>
+              <option value="ROLE_MANAGER">Managers</option>
+              <option value="ROLE_ADMIN">Admins</option>
             </select>
           </div>
           <div className="filter-group">
             <span className="filter-label">Results</span>
-            <span className="hotel-detail-value">{filteredUsers.length} users</span>
+            <span className="hotel-detail-value">
+              {filteredUsers.length} users
+            </span>
           </div>
         </div>
       </div>
 
-      {error && (
-        <div className="alert error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
 
       {/* Users Table */}
       {filteredUsers.length === 0 ? (
@@ -150,24 +170,34 @@ export default function AdminUsersDetailsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+              {filteredUsers.map((user) => {
+                // Use the helper to get display-friendly values
+                const roleInfo = formatRole(user.role);
+                return (
+                  <tr key={user.id}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-xs text-muted-foreground">
+                            ID: {user.id}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>{user.email}</td>
-                  <td>
-                    <span className={`user-role ${user.role}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td>{new Date(user.createdAt || Date.now()).toLocaleDateString()}</td>
-                </tr>
-              ))}
+                    </td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className={`user-role ${roleInfo.className}`}>
+                        {roleInfo.displayName}
+                      </span>
+                    </td>
+                    <td>
+                      {new Date(
+                        user.createdAt || Date.now()
+                      ).toLocaleDateString()}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
