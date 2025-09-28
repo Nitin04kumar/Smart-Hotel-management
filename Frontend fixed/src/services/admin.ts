@@ -15,39 +15,27 @@ export type AdminHotel = {
 };
 
 export async function getHotelsByStatus(status: 'approved' | 'pending' | 'rejected') {
-  const res = await api.get('/admin/hotels', { params: { status } });
+  const res = await api.get('/api/admin/hotels/pending');
   return res.data as AdminHotel[];
 }
 
 export async function approveHotel(id: string) {
-  const res = await api.post(`/admin/hotels/${id}/approve`);
-  return res.data as { id: string; status: 'approved' };
+  const res = await api.put(`/api/admin/hotels/${id}/approve`);
+  return res.data as string; // backend returns message
 }
 
 export async function rejectHotel(id: string) {
-  const res = await api.post(`/admin/hotels/${id}/reject`);
-  return res.data as { id: string; status: 'rejected' };
-}
-
-export async function getUsersStats() {
-  const res = await api.get('/admin/users-stats');
-  return res.data as { users: number; managers: number; admins: number; total: number };
+  const res = await api.put(`/api/admin/hotels/${id}/reject`);
+  return res.data as string; // backend returns message
 }
 
 export async function getAllUsers() {
-  const res = await api.get('/admin/users');
+  const res = await api.get('/api/admin/users');
   return res.data as User[];
 }
 
 export async function getDashboardStats() {
-  const res = await api.get('/admin/dashboard');
-  return res.data as {
-    totalUsers: number;
-    totalHotels: number;
-    totalBookings: number;
-    totalRevenue: number;
-    pendingApprovals: number;
-    recentActivity: string[];
-  };
+  const res = await api.get('/api/admin/dashboard/stats');
+  return res.data as Record<string, any>;
 }
 

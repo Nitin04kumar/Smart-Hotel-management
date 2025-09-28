@@ -73,15 +73,17 @@ export type LoyaltyInfo = {
 };
 
 export type User = {
-  id: string;
+  id?: string;
   email: string;
   role: 'user' | 'manager' | 'admin';
+  name?: string;
 };
 
+// Backend login response shape
 export type LoginResponse = {
-  user: User;
-  token: string;
-  expiresAt: string;
+  username: string;
+  roles: string[];
+  jwtToken: string;
 };
 
 export type HotelRequest = {

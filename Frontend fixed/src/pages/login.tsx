@@ -15,14 +15,10 @@ export default function Login() {
   const location = useLocation();
   const { signIn } = useAuth();
 
-  const [form, setForm] = useState<{
-    email: string;
-    password: string;
-    role: Role;
-  }>({
+  const [form, setForm] = useState<{ email: string; password: string; role: Role; }>({
     email: "",
     password: "",
-    role: "manager", // Default to manager since most registrations will be managers
+    role: "user",
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -59,8 +55,12 @@ export default function Login() {
     setMessage(null);
     try {
       const res = await login(form.email.trim(), form.password, form.role);
-      console.log("Login - Response from API:", res);
-      signIn({ token: res.token, user: res.user });
+      const hasAdmin = res.roles?.some((r) => r === 'ROLE_ADMIN');
+      const hasManager = res.roles?.some((r) => r === 'ROLE_MANAGER');
+      const role: Role = hasAdmin ? 'admin' : hasManager ? 'manager' : 'user';
+      const user = { email: res.username, role, name: res.username } as const;
+      localStorage.setItem('token', res.jwtToken);
+      signIn({ token: res.jwtToken, user });
       console.log("Login - After signIn, navigating to /app");
       navigate("/app", { replace: true });
     } catch (err: any) {

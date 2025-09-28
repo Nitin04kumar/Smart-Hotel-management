@@ -10,57 +10,52 @@ import type {
 } from '@/models/types';
 
 export async function searchHotels(params: { location: string; roomType: RoomType }) {
-  const res = await api.get('/hotels', { params });
+  const res = await api.get('/api/hotels', { params });
   return res.data as HotelSummary[];
 }
 
 export async function getHotel(id: string) {
-  console.log('🌐 Making API request to get hotel:', id);
-  console.log('🌐 Request URL:', `/api/hotels/${id}`);
-  
-  const res = await api.get(`/hotels/${id}`);
-  console.log('🌐 API Response:', res.data);
-  
+  const res = await api.get(`/api/hotels/${id}`);
   return res.data as HotelDetail;
 }
 
 export async function createBooking(data: Omit<Booking, 'id' | 'status' | 'hotelName'>) {
-  const res = await api.post('/user/bookings', data);
+  const res = await api.post('/api/user/bookings', data);
   return res.data as Booking;
 }
 
 export async function listBookings(userEmail: string) {
-  const res = await api.get('/user/bookings', { params: { user: userEmail } });
+  const res = await api.get('/api/user/bookings');
   return res.data as Booking[];
 }
 
 export async function createPayment(data: { bookingId: string; userEmail: string; amount: number; method: 'upi' | 'card'; details: any; }) {
-  const res = await api.post('/user/payments', data);
+  const res = await api.post('/api/user/payments', data);
   return res.data as Payment;
 }
 
 export async function listPayments(userEmail: string) {
-  const res = await api.get('/user/payments', { params: { user: userEmail } });
+  const res = await api.get('/api/user/payments');
   return res.data as Payment[];
 }
 
 export async function addReview(data: Omit<Review, 'id' | 'createdAt'>) {
-  const res = await api.post('/user/reviews', data);
+  const res = await api.post('/api/user/reviews', data);
   return res.data as Review;
 }
 
 export async function listReviews(userEmail: string) {
-  const res = await api.get('/user/reviews', { params: { user: userEmail } });
+  const res = await api.get('/api/user/reviews');
   return res.data as Review[];
 }
 
 export async function getLoyalty(userEmail: string) {
-  const res = await api.get('/user/loyalty', { params: { user: userEmail } });
+  const res = await api.get('/api/user/loyalty');
   return res.data as LoyaltyInfo;
 }
 
 export async function redeemLoyalty(userEmail: string, points: number) {
-  const res = await api.post('/user/loyalty/redeem', { userEmail, points });
+  const res = await api.post('/api/user/loyalty/redeem', { points });
   return res.data as LoyaltyInfo;
 }
 

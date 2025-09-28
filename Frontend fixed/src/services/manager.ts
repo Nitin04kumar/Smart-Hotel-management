@@ -24,27 +24,27 @@ export type NewHotelPayload = {
 };
 
 export async function getMyHotels(managerEmail: string) {
-  const res = await api.get('/manager/hotels');
+  const res = await api.get('/api/manager/hotels');
   return res.data as ManagerHotel[];
 }
 
 export async function addHotel(payload: NewHotelPayload) {
-  const res = await api.post('/manager/hotels', payload);
+  const res = await api.post('/api/manager/hotels', payload);
   return res.data as ManagerHotel;
 }
 
 export async function getManagerBookings(managerEmail: string) {
-  const res = await api.get('/manager/bookings');
+  const res = await api.get('/api/manager/bookings');
   return res.data as Booking[];
 }
 
 export async function getManagerReviews(managerEmail: string) {
-  const res = await api.get('/manager/reviews');
+  const res = await api.get('/api/manager/reviews');
   return res.data as Review[];
 }
 
 export async function replyToReview(reviewId: string, managerEmail: string, text: string) {
-  const res = await api.post(`/reviews/${reviewId}/reply`, { managerEmail, text });
+  const res = await api.post(`/api/manager/reviews/${reviewId}/reply`, { reply: text });
   return res.data as Review;
 }
 

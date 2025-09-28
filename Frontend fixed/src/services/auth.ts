@@ -1,13 +1,12 @@
 import api from "./api";
-import type { User, LoginResponse } from "@/models/types";
+import type { LoginResponse } from "@/models/types";
 
 export type Role = "admin" | "manager" | "user";
 
-export async function login(email: string, password: string, role: Role) {
+export async function login(email: string, password: string, _role: Role) {
   const res = await api.post("/api/auth/login", {
     email,
     password,
-    // Remove role from login request if your backend doesn't need it
   });
   return res.data as LoginResponse;
 }
