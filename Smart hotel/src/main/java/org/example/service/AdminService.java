@@ -45,7 +45,7 @@ public class AdminService {
         userRepository.delete(user);
     }
 
-    // ✅ Hotels
+
     public List<Hotel> getAllHotels() {
         return hotelRepository.findAll();
     }

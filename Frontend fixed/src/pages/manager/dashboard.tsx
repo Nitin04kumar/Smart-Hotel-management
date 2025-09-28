@@ -8,17 +8,16 @@ import {
   Calendar,
   DollarSign,
   Star,
-  MessageSquare,
-  MapPin,
-  Users,
   ChevronDown,
+  MapPin,
 } from "lucide-react";
 
 export default function ManagerDashboardPage() {
   const { auth } = useAuth();
+  // Initialize state with empty arrays for safety and cleaner code
   const [hotels, setHotels] = useState<ManagerHotel[]>([]);
-  const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<
     "all" | "approved" | "pending" | "rejected"
   >("all");
@@ -35,7 +34,6 @@ export default function ManagerDashboardPage() {
       getManagerBookings(auth.user.email),
     ])
       .then(([hs, bs]) => {
-        // Ensure hotels is always an array
         setHotels(Array.isArray(hs) ? hs : []);
         setBookings(Array.isArray(bs) ? bs : []);
       })
@@ -47,54 +45,47 @@ export default function ManagerDashboardPage() {
       .finally(() => setLoading(false));
   }, [auth]);
 
-  // Safe array operations with fallbacks
-  const approvedHotels = Array.isArray(hotels)
-    ? hotels.filter((h) => (h.status ?? "approved") === "approved")
-    : [];
-  const pendingHotels = Array.isArray(hotels)
-    ? hotels.filter((h) => h.status === "pending")
-    : [];
-  const rejectedHotels = Array.isArray(hotels)
-    ? hotels.filter((h) => h.status === "rejected")
-    : [];
+  // Memoize hotel-related calculations for performance
+  const hotelStats = useMemo(() => {
+    const approved = hotels.filter(
+      (h) => (h.status ?? "approved") === "approved"
+    );
+    const pending = hotels.filter((h) => h.status === "pending");
+    const rejected = hotels.filter((h) => h.status === "rejected");
+    const avgRating =
+      hotels.length > 0
+        ? hotels.reduce((sum, h) => sum + (h.rating || 0), 0) / hotels.length
+        : 0;
 
-  const filteredHotels =
-    selectedStatus === "all"
-      ? hotels
-      : selectedStatus === "approved"
-      ? approvedHotels
-      : selectedStatus === "pending"
-      ? pendingHotels
-      : rejectedHotels;
+    return { approved, pending, rejected, avgRating, total: hotels.length };
+  }, [hotels]);
 
-  const totalHotels = approvedHotels.length;
-  const successfulBookings = Array.isArray(bookings)
-    ? bookings.filter(
-        (b) =>
-          b.status === "confirmed" ||
-          b.status === "completed" ||
-          b.status === "paid"
-      )
-    : [];
-  const totalBookings = successfulBookings.length;
-  const totalRevenue = successfulBookings.reduce(
-    (sum, b) => sum + (b.total || 0),
-    0
-  );
+  // Memoize booking-related calculations for performance
+  const bookingStats = useMemo(() => {
+    const successful = bookings.filter(
+      (b) =>
+        b.status === "confirmed" ||
+        b.status === "completed" ||
+        b.status === "paid"
+    );
+    const totalRevenue = successful.reduce((sum, b) => sum + (b.total || 0), 0);
+    return { successful, totalRevenue };
+  }, [bookings]);
 
-  console.log("📊 Manager Dashboard - Bookings data:", {
-    totalBookings: Array.isArray(bookings) ? bookings.length : 0,
-    successfulBookings: successfulBookings.length,
-    totalRevenue,
-    bookingStatuses: Array.isArray(bookings)
-      ? bookings.map((b) => ({ id: b.id, status: b.status, total: b.total }))
-      : [],
-  });
-
-  const avgRating =
-    Array.isArray(hotels) && hotels.length > 0
-      ? hotels.reduce((sum, h) => sum + (h.rating || 0), 0) / hotels.length
-      : 0;
+  // Memoize the filtering logic for the hotel list for performance
+  const filteredHotels = useMemo(() => {
+    switch (selectedStatus) {
+      case "approved":
+        return hotelStats.approved;
+      case "pending":
+        return hotelStats.pending;
+      case "rejected":
+        return hotelStats.rejected;
+      case "all":
+      default:
+        return hotels;
+    }
+  }, [selectedStatus, hotels, hotelStats]);
 
   if (loading) {
     return (
@@ -125,7 +116,7 @@ export default function ManagerDashboardPage() {
               <Hotel size={16} />
             </div>
           </div>
-          <div className="metric-value">{totalHotels}</div>
+          <div className="metric-value">{hotelStats.total}</div>
           <div className="metric-description">Total properties managed</div>
         </div>
 
@@ -136,7 +127,7 @@ export default function ManagerDashboardPage() {
               <Calendar size={16} />
             </div>
           </div>
-          <div className="metric-value">{totalBookings}</div>
+          <div className="metric-value">{bookingStats.successful.length}</div>
           <div className="metric-description">All-time reservations</div>
         </div>
 
@@ -147,7 +138,9 @@ export default function ManagerDashboardPage() {
               <DollarSign size={16} />
             </div>
           </div>
-          <div className="metric-value">₹{totalRevenue.toLocaleString()}</div>
+          <div className="metric-value">
+            ₹{bookingStats.totalRevenue.toLocaleString()}
+          </div>
           <div className="metric-description">Total earnings</div>
         </div>
 
@@ -158,7 +151,7 @@ export default function ManagerDashboardPage() {
               <Star size={16} />
             </div>
           </div>
-          <div className="metric-value">{avgRating.toFixed(1)}</div>
+          <div className="metric-value">{hotelStats.avgRating.toFixed(1)}</div>
           <div className="metric-description">Customer satisfaction</div>
         </div>
       </div>
@@ -170,7 +163,7 @@ export default function ManagerDashboardPage() {
           Recent Bookings
         </h2>
 
-        {!Array.isArray(bookings) || bookings.length === 0 ? (
+        {bookings.length === 0 ? (
           <div className="empty-state">
             <h3>No bookings yet</h3>
             <p>
@@ -218,7 +211,6 @@ export default function ManagerDashboardPage() {
             <Hotel size={20} />
             My Hotels
           </h2>
-
           <div className="status-filter-dropdown">
             <select
               value={selectedStatus}
@@ -229,22 +221,22 @@ export default function ManagerDashboardPage() {
               }
               className="status-filter-select"
             >
-              <option value="all">
-                All Hotels ({Array.isArray(hotels) ? hotels.length : 0})
-              </option>
+              <option value="all">All Hotels ({hotelStats.total})</option>
               <option value="approved">
-                Approved ({approvedHotels.length})
+                Approved ({hotelStats.approved.length})
               </option>
-              <option value="pending">Pending ({pendingHotels.length})</option>
+              <option value="pending">
+                Pending ({hotelStats.pending.length})
+              </option>
               <option value="rejected">
-                Rejected ({rejectedHotels.length})
+                Rejected ({hotelStats.rejected.length})
               </option>
             </select>
             <ChevronDown size={16} className="dropdown-icon" />
           </div>
         </div>
 
-        {!Array.isArray(hotels) || hotels.length === 0 ? (
+        {hotels.length === 0 ? (
           <div className="empty-state">
             <h3>No hotels yet</h3>
             <p>Add your first hotel to start managing bookings and reviews.</p>
