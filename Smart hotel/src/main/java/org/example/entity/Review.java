@@ -1,9 +1,6 @@
 package org.example.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,33 +20,32 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id")
     private Booking booking;
 
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hotel_id")
     private Hotel hotel;
 
-    @NotNull
     private String userEmail;
 
-    @Min(1)
-    @Max(5)
     private Integer rating;
 
     @Column(columnDefinition = "TEXT")
     private String comment;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
+    // Reply fields - make sure these exist and are properly mapped
+    @Column(name = "reply_manager_email")
     private String replyManagerEmail;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "reply_text", columnDefinition = "TEXT")
     private String replyText;
 
+    @Column(name = "reply_created_at")
     private LocalDateTime replyCreatedAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 }

@@ -7,9 +7,10 @@ import {
   getHotel,
   createBooking,
   createPayment,
+  getLoyalty,
 } from "@/services/hotel";
 import { format, addDays } from "date-fns";
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Star, Gift } from "lucide-react";
 import "./search.css";
 
 export default function UserSearchPage() {
@@ -30,7 +31,6 @@ export default function UserSearchPage() {
   });
   const [reviews, setReviews] = useState([]);
   const [results, setResults] = useState<HotelSummary[]>([]);
-  // FIX 2: Set initial loading state to true
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,13 +40,11 @@ export default function UserSearchPage() {
   >("search");
   const [bookingId, setBookingId] = useState<string | null>(null);
 
-  // FIX 1: Add useEffect to fetch all hotels on initial component load
   useEffect(() => {
     const fetchInitialHotels = async () => {
       setLoading(true);
       setError(null);
       try {
-        // We pass an empty location to signify a search for all hotels
         const data = await searchHotels({ location: "", roomType: "standard" });
         setResults(Array.isArray(data) ? data : []);
       } catch (err: any) {
@@ -62,7 +60,7 @@ export default function UserSearchPage() {
     };
 
     fetchInitialHotels();
-  }, []); // The empty dependency array ensures this runs only once on mount
+  }, []);
 
   const nights = useMemo(() => {
     if (!form.checkin || !form.checkout) return 0;
@@ -147,7 +145,11 @@ export default function UserSearchPage() {
     }
   };
 
-  const payNow = async (method: "upi" | "card", details: any) => {
+  const payNow = async (
+    method: "upi" | "card",
+    details: any,
+    loyaltyPointsUsed: number = 0
+  ) => {
     if (!auth || !bookingId) return;
     setError(null);
     setLoading(true);
@@ -158,6 +160,7 @@ export default function UserSearchPage() {
         amount: total,
         method,
         details,
+        loyaltyPointsUsed,
       });
       setStep("success");
     } catch (err: any) {
@@ -167,7 +170,6 @@ export default function UserSearchPage() {
     }
   };
 
-  // The rest of your component's JSX remains the same
   return (
     <div className="user-search-page space-y-4">
       <header>
@@ -229,7 +231,6 @@ export default function UserSearchPage() {
 
       {error && <div className="alert error">{error}</div>}
 
-      {/* Results */}
       {step === "search" &&
         !loading &&
         Array.isArray(results) &&
@@ -293,7 +294,6 @@ export default function UserSearchPage() {
           </section>
         )}
 
-      {/* Loading state */}
       {loading && (
         <div className="empty-state">
           <h3>Loading hotels...</h3>
@@ -301,7 +301,6 @@ export default function UserSearchPage() {
         </div>
       )}
 
-      {/* No results message */}
       {step === "search" &&
         Array.isArray(results) &&
         results.length === 0 &&
@@ -312,7 +311,6 @@ export default function UserSearchPage() {
           </div>
         )}
 
-      {/* Details */}
       {step === "details" && selected && (
         <section className="booking-details-form">
           <div className="booking-header">
@@ -431,7 +429,6 @@ export default function UserSearchPage() {
         </section>
       )}
 
-      {/* Payment */}
       {step === "payment" && (
         <PaymentForm
           amount={total}
@@ -502,18 +499,37 @@ function PaymentForm({
   loading,
 }: {
   amount: number;
-  onPay: (method: "upi" | "card", details: any) => void;
+  onPay: (
+    method: "upi" | "card",
+    details: any,
+    loyaltyPointsUsed: number
+  ) => void;
   onCancel: () => void;
   loading: boolean;
 }) {
+  const { auth } = useAuth();
   const [method, setMethod] = useState<"upi" | "card">("upi");
   const [upi, setUpi] = useState("");
+  const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState(0);
+  const [loyaltyInfo, setLoyaltyInfo] = useState<any>(null);
   const [card, setCard] = useState({
     number: "",
     name: "",
     expiry: "",
     cvv: "",
   });
+
+  useEffect(() => {
+    if (auth?.user?.email) {
+      getLoyalty(auth.user.email).then(setLoyaltyInfo).catch(console.error);
+    }
+  }, [auth?.user?.email]);
+
+  const availablePoints = loyaltyInfo?.available || 0;
+  const maxPointsToUse = Math.min(availablePoints, Math.floor(amount));
+  const discount = loyaltyPointsUsed;
+  const finalAmount = Math.max(0, amount - discount);
+
   const upiValid = /\S+@\S+/.test(upi);
   const cardValid =
     card.number.replace(/\s/g, "").length >= 12 &&
@@ -528,9 +544,63 @@ function PaymentForm({
         <h2 className="hotel-name-details">Complete Payment</h2>
         <p className="hotel-location-details">Secure payment processing</p>
         <div className="payment-amount-display">
-          <span className="payment-amount">Amount to pay: ${amount}</span>
+          <div className="amount-breakdown">
+            <div className="amount-line">
+              <span>Original Amount:</span>
+              <span>${amount}</span>
+            </div>
+            {loyaltyPointsUsed > 0 && (
+              <div className="amount-line discount">
+                <span>Loyalty Points Discount:</span>
+                <span>-${discount}</span>
+              </div>
+            )}
+            <div className="amount-line final">
+              <span>Final Amount:</span>
+              <span>${finalAmount}</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Loyalty Points Section */}
+      {availablePoints > 0 && (
+        <div className="loyalty-section">
+          <h3 className="section-title">
+            <Gift size={18} className="inline mr-2" />
+            Use Loyalty Points
+          </h3>
+          <div className="loyalty-points-info">
+            <p>
+              Available Points: <strong>{availablePoints}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              1 point = $1 discount
+            </p>
+          </div>
+          <div className="form-group">
+            <label className="form-label">
+              Points to Use (Max: {maxPointsToUse})
+            </label>
+            <input
+              className="form-input"
+              type="number"
+              min="0"
+              max={maxPointsToUse}
+              value={loyaltyPointsUsed}
+              onChange={(e) =>
+                setLoyaltyPointsUsed(
+                  Math.max(0, Math.min(maxPointsToUse, Number(e.target.value)))
+                )
+              }
+              placeholder="0"
+            />
+            <small className="text-muted-foreground">
+              Using {loyaltyPointsUsed} points for ${discount} discount
+            </small>
+          </div>
+        </div>
+      )}
 
       <div className="room-selection-section">
         <h3 className="section-title">Select Payment Method</h3>
@@ -616,12 +686,17 @@ function PaymentForm({
             </button>
             <button
               className="action-button primary"
-              disabled={loading || !canPay}
+              disabled={loading || !canPay || finalAmount < 0}
               onClick={() =>
-                canPay && onPay(method, method === "upi" ? { vpa: upi } : card)
+                canPay &&
+                onPay(
+                  method,
+                  method === "upi" ? { vpa: upi } : card,
+                  loyaltyPointsUsed
+                )
               }
             >
-              {loading ? "Processing Payment..." : "Pay Now →"}
+              {loading ? "Processing Payment..." : `Pay $${finalAmount} Now →`}
             </button>
           </div>
         </div>

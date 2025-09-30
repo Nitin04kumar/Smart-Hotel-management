@@ -1,5 +1,6 @@
 package org.example.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.example.enums.BookingStatus;
 import org.example.enums.RoomType;
 import jakarta.persistence.*;
@@ -27,6 +28,7 @@ public class Booking {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hotel_id")
+    @JsonIgnore
     private Hotel hotel;
 
     @NotNull

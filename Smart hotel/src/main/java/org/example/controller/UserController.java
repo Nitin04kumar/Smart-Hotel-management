@@ -2,9 +2,11 @@ package org.example.controller;
 
 import org.example.dto.Request.BookingRequest;
 import org.example.dto.Response.BookingResponse;
+import org.example.dto.Response.PaymentResponse;
+import org.example.dto.Response.ReviewResponse;
 import org.example.entity.Loyalty;
-import org.example.entity.Payment;
-import org.example.entity.Review;
+import org.example.exceptions.DuplicatePaymentException;
+import org.example.exceptions.ResourceNotFoundException;
 import org.example.service.BookingService;
 import org.example.service.LoyaltyService;
 import org.example.service.PaymentService;
@@ -12,6 +14,7 @@ import org.example.service.ReviewService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/user")
@@ -41,102 +45,141 @@ public class UserController {
 
     @PostMapping("/bookings")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest request,
-                                                         Authentication authentication) {
+    public ResponseEntity<?> createBooking(@RequestBody BookingRequest request,
+                                           Authentication authentication) {
         try {
             String userEmail = authentication.getName();
             BookingResponse booking = bookingService.createBooking(request, userEmail);
             return ResponseEntity.ok(booking);
         } catch (Exception e) {
             logger.error("Error creating booking: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to create booking: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @GetMapping("/bookings")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<BookingResponse>> getUserBookings(Authentication authentication) {
+    public ResponseEntity<?> getUserBookings(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
             List<BookingResponse> bookings = bookingService.getUserBookings(userEmail);
             return ResponseEntity.ok(bookings);
         } catch (Exception e) {
             logger.error("Error getting user bookings: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get user bookings: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @PostMapping("/payments")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Payment> createPayment(@RequestBody Map<String, Object> paymentData,
-                                                 Authentication authentication) {
+    public ResponseEntity<?> createPayment(@RequestBody Map<String, Object> paymentData,
+                                           Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            Payment payment = paymentService.createPayment(paymentData, userEmail);
+            PaymentResponse payment = paymentService.createPayment(paymentData, userEmail);
             return ResponseEntity.ok(payment);
+        } catch (DuplicatePaymentException e) {
+            logger.error("Duplicate payment attempt: ", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: ", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid payment data: ", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } catch (Exception e) {
             logger.error("Error creating payment: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to process payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @GetMapping("/payments")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<Payment>> getUserPayments(Authentication authentication) {
+    public ResponseEntity<?> getUserPayments(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            List<Payment> payments = paymentService.getUserPayments(userEmail);
+            List<PaymentResponse> payments = paymentService.getUserPayments(userEmail);
             return ResponseEntity.ok(payments);
         } catch (Exception e) {
             logger.error("Error getting user payments: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get user payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @PostMapping("/reviews")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Review> addReview(@RequestBody Map<String, Object> reviewData,
-                                            Authentication authentication) {
+    public ResponseEntity<?> addReview(@RequestBody Map<String, Object> reviewData,
+                                       Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            Review review = reviewService.addReview(reviewData, userEmail);
+            ReviewResponse review = reviewService.addReview(reviewData, userEmail);
             return ResponseEntity.ok(review);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid review data: ", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (RuntimeException e) {
+            logger.error("Review creation error: ", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
         } catch (Exception e) {
             logger.error("Error adding review: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to add review: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @GetMapping("/reviews")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<Review>> getUserReviews(Authentication authentication) {
+    public ResponseEntity<?> getUserReviews(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            List<Review> reviews = reviewService.getUserReviews(userEmail);
+            List<ReviewResponse> reviews = reviewService.getUserReviews(userEmail);
             return ResponseEntity.ok(reviews);
         } catch (Exception e) {
             logger.error("Error getting user reviews: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get user reviews: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @GetMapping("/loyalty")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Loyalty> getLoyalty(Authentication authentication) {
+    public ResponseEntity<?> getLoyalty(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
             Loyalty loyalty = loyaltyService.getUserLoyalty(userEmail);
             return ResponseEntity.ok(loyalty);
         } catch (Exception e) {
             logger.error("Error getting loyalty: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get loyalty information: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
     @PostMapping("/loyalty/redeem")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Loyalty> redeemLoyalty(@RequestBody Map<String, Object> redeemData,
-                                                 Authentication authentication) {
+    public ResponseEntity<?> redeemLoyalty(@RequestBody Map<String, Object> redeemData,
+                                           Authentication authentication) {
         try {
             String userEmail = authentication.getName();
             Integer points = (Integer) redeemData.get("points");
@@ -144,7 +187,9 @@ public class UserController {
             return ResponseEntity.ok(loyalty);
         } catch (Exception e) {
             logger.error("Error redeeming loyalty points: ", e);
-            return ResponseEntity.status(500).build();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to redeem loyalty points: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 }
