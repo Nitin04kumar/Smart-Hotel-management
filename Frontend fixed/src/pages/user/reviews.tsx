@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import type { Booking, Review } from "@/models/types";
 import { addReview, listBookings, listReviews } from "@/services/hotel";
 import { Star } from "lucide-react";
 import "./reviews.css";
@@ -9,13 +8,14 @@ export default function UserReviewsPage() {
   useEffect(() => {
     document.title = "Reviews & Rating | Smart Hotel";
   }, []);
+
   const { auth } = useAuth();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [bookings, setBookings] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [form, setForm] = useState({
     bookingId: "",
     rating: 5,
@@ -41,10 +41,10 @@ export default function UserReviewsPage() {
 
         // Filter bookings: only show PAID bookings that haven't been reviewed
         const reviewedBookingIds = new Set(
-          reviewsArray.map((r: Review) => r.bookingId)
+          reviewsArray.map((r) => r.bookingId)
         );
         const availableBookings = bookingsArray.filter(
-          (b: Booking) => b.status === "paid" && !reviewedBookingIds.has(b.id)
+          (b) => b.status === "paid" && !reviewedBookingIds.has(b.id)
         );
 
         setBookings(availableBookings);
@@ -60,11 +60,7 @@ export default function UserReviewsPage() {
       });
   }, [auth?.user?.email]);
 
-  const onChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
+  const onChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -75,7 +71,7 @@ export default function UserReviewsPage() {
     if (success) setSuccess(null);
   };
 
-  const submitReview = async (e: React.FormEvent) => {
+  const submitReview = async (e) => {
     e.preventDefault();
     if (!auth?.user?.email || !form.bookingId) return;
 
@@ -104,7 +100,7 @@ export default function UserReviewsPage() {
       setSuccess(
         "Review submitted successfully! You earned 50 loyalty points."
       );
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error submitting review:", err);
       setError(
         err?.response?.data?.message ||
@@ -114,6 +110,32 @@ export default function UserReviewsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to check if review has a reply
+  const hasReply = (review) => {
+    return !!(
+      review.replyText ||
+      review.reply?.text ||
+      (review.reply && review.reply.text)
+    );
+  };
+
+  // Helper function to get reply text
+  const getReplyText = (review) => {
+    return review.replyText || review.reply?.text || "";
+  };
+
+  // Helper function to get reply date
+  const getReplyDate = (review) => {
+    return review.replyCreatedAt || review.reply?.repliedAt || "";
+  };
+
+  // Helper function to get manager email
+  const getManagerEmail = (review) => {
+    return (
+      review.replyManagerEmail || review.reply?.managerEmail || "Hotel Manager"
+    );
   };
 
   // Show loading state
@@ -321,13 +343,30 @@ export default function UserReviewsPage() {
                 <div className="review-meta">
                   Review #{review.id} • {review.rating}/5 stars
                 </div>
-                {review.reply && (
+
+                {/* Manager's Reply Section */}
+                {hasReply(review) && (
                   <div className="manager-reply">
-                    <div className="reply-header">Manager's Response:</div>
-                    <p className="reply-text">{review.reply.text}</p>
-                    {review.reply.repliedAt && (
+                    <div className="reply-header">
+                      <strong>Manager's Response</strong>
+                      <span className="reply-manager">
+                        by {getManagerEmail(review)}
+                      </span>
+                    </div>
+                    <p className="reply-text">{getReplyText(review)}</p>
+                    {getReplyDate(review) && (
                       <div className="reply-date">
-                        {new Date(review.reply.repliedAt).toLocaleDateString()}
+                        Replied on{" "}
+                        {new Date(getReplyDate(review)).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </div>
                     )}
                   </div>

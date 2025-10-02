@@ -22,6 +22,12 @@ public class ReviewResponse {
     private String comment;
     private LocalDateTime createdAt;
 
+    // Add reply fields
+    private String replyManagerEmail;
+    private String replyText;
+    private LocalDateTime replyCreatedAt;
+    private Boolean hasReply; // Helper field for frontend
+
     public ReviewResponse(Review review) {
         this.id = review.getId();
         this.bookingId = review.getBooking().getId().toString();
@@ -31,5 +37,11 @@ public class ReviewResponse {
         this.rating = review.getRating();
         this.comment = review.getComment();
         this.createdAt = review.getCreatedAt();
+
+        // Map reply fields
+        this.replyManagerEmail = review.getReplyManagerEmail();
+        this.replyText = review.getReplyText();
+        this.replyCreatedAt = review.getReplyCreatedAt();
+        this.hasReply = review.getReplyText() != null && !review.getReplyText().trim().isEmpty();
     }
 }

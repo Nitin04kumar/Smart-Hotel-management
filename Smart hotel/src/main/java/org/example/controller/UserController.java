@@ -2,6 +2,8 @@ package org.example.controller;
 
 import org.example.dto.Request.BookingRequest;
 import org.example.dto.Response.BookingResponse;
+import org.example.dto.Response.LoyaltyResponse;
+import org.example.dto.Response.LoyaltyHistoryResponse;
 import org.example.dto.Response.PaymentResponse;
 import org.example.dto.Response.ReviewResponse;
 import org.example.entity.Loyalty;
@@ -166,7 +168,7 @@ public class UserController {
     public ResponseEntity<?> getLoyalty(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            Loyalty loyalty = loyaltyService.getUserLoyalty(userEmail);
+            LoyaltyResponse loyalty = loyaltyService.getUserLoyaltyResponse(userEmail);
             return ResponseEntity.ok(loyalty);
         } catch (Exception e) {
             logger.error("Error getting loyalty: ", e);
@@ -183,12 +185,27 @@ public class UserController {
         try {
             String userEmail = authentication.getName();
             Integer points = (Integer) redeemData.get("points");
-            Loyalty loyalty = loyaltyService.redeemPoints(userEmail, points);
+            LoyaltyResponse loyalty = loyaltyService.redeemPointsResponse(userEmail, points);
             return ResponseEntity.ok(loyalty);
         } catch (Exception e) {
             logger.error("Error redeeming loyalty points: ", e);
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "Failed to redeem loyalty points: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @GetMapping("/loyalty/history")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<?> getLoyaltyHistory(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            List<LoyaltyHistoryResponse> history = loyaltyService.getLoyaltyHistory(userEmail);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            logger.error("Error getting loyalty history: ", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to get loyalty history: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }

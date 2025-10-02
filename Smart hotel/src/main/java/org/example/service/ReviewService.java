@@ -113,6 +113,8 @@ public class ReviewService {
                 .collect(Collectors.toList());
     }
 
+
+
     private void updateHotelRating(Hotel hotel) {
         List<Review> reviews = reviewRepository.findByHotelId(hotel.getId());
         if (!reviews.isEmpty()) {

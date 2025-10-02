@@ -92,12 +92,12 @@ export async function listReviews(userEmail: string) {
   return res.data as Review[];
 }
 
-export async function getLoyalty(userEmail: string) {
+export async function getLoyalty(userEmail) {
   const res = await api.get("/api/user/loyalty");
-  return res.data as LoyaltyInfo;
+  return res.data;
 }
 
-export async function redeemLoyalty(userEmail: string, points: number) {
+export async function redeemLoyalty(userEmail, points) {
   const res = await api.post("/api/user/loyalty/redeem", { points });
-  return res.data as LoyaltyInfo;
+  return res.data;
 }

@@ -1,5 +1,7 @@
 package org.example.service;
 
+import org.example.dto.Response.LoyaltyResponse;
+import org.example.dto.Response.LoyaltyHistoryResponse;
 import org.example.entity.Loyalty;
 import org.example.entity.LoyaltyHistory;
 import org.example.enums.LoyaltyHistoryType;
@@ -9,7 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.mysql.cj.conf.PropertyKey.logger;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class LoyaltyService {
@@ -23,6 +26,28 @@ public class LoyaltyService {
     public Loyalty getUserLoyalty(String userEmail) {
         return loyaltyRepository.findByUserEmail(userEmail)
                 .orElseGet(() -> createLoyaltyAccount(userEmail));
+    }
+
+    public LoyaltyResponse getUserLoyaltyResponse(String userEmail) {
+        Loyalty loyalty = getUserLoyalty(userEmail);
+        List<LoyaltyHistoryResponse> history = getLoyaltyHistory(userEmail);
+        return new LoyaltyResponse(loyalty, history);
+    }
+
+    public List<LoyaltyHistoryResponse> getLoyaltyHistory(String userEmail) {
+        // Use the query method that works with userEmail
+        List<LoyaltyHistory> history = loyaltyHistoryRepository.findByUserEmailOrderByDateDesc(userEmail);
+
+        return history.stream()
+                .map(LoyaltyHistoryResponse::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public LoyaltyResponse redeemPointsResponse(String userEmail, Integer points) {
+        Loyalty loyalty = redeemPoints(userEmail, points);
+        List<LoyaltyHistoryResponse> history = getLoyaltyHistory(userEmail);
+        return new LoyaltyResponse(loyalty, history);
     }
 
     @Transactional
@@ -42,8 +67,6 @@ public class LoyaltyService {
                 .description(description)
                 .build();
         loyaltyHistoryRepository.save(history);
-
-        //logger.info("Awarded {} points to user: {}. Description: {}", points, userEmail, description);
     }
 
     @Transactional
@@ -67,7 +90,6 @@ public class LoyaltyService {
                 .build();
         loyaltyHistoryRepository.save(history);
 
-        //logger.info("Redeemed {} points from user: {}. Description: {}", points, userEmail, description);
         return loyalty;
     }
 
@@ -84,12 +106,9 @@ public class LoyaltyService {
                 .totalEarned(0)
                 .totalRedeemed(0)
                 .build();
-        Loyalty savedLoyalty = loyaltyRepository.save(loyalty);
-        //logger.info("Created new loyalty account for user: {}", userEmail);
-        return savedLoyalty;
+        return loyaltyRepository.save(loyalty);
     }
 
-    // Helper method to calculate discount from loyalty points
     public Double calculateDiscountFromPoints(String userEmail, Integer pointsToUse) {
         Loyalty loyalty = getUserLoyalty(userEmail);
 
@@ -97,7 +116,6 @@ public class LoyaltyService {
             throw new RuntimeException("Insufficient loyalty points. Available: " + loyalty.getAvailable());
         }
 
-        // Convert points to currency (1 point = 1 currency unit)
         return pointsToUse.doubleValue();
     }
 }
